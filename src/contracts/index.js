@@ -1,82 +1,51 @@
-require('dotenv').config();
-const { ethers } = require('ethers');
-const Bytecode = require('./contracts/bytecode.json');
+import { ethers } from 'ethers';
+// import { Contract, Provider, setMulticallAddress } from "ethers-multicall";
+
 const Abis = require('./contracts/abis.json');
 const Addresses = require('./contracts/addresses.json');
-const { provider, supportChainId } = require('./providers');
-const { Contract, Provider, setMulticallAddress } = require('ethers-multicall');
 
-const multicallAddress = process.env.MULTIADDRESS;
-setMulticallAddress(250, "0xaeF5373b058DceacedF2995005A86aDfE860c4B4");
+const supportChainId = 250;
+// const multicallAddress = "0x402C435EA85DFdA24181141De1DE66bad67Cdf12";
+// setMulticallAddress(supportChainId, multicallAddress);
 
-const lazyNFTContract = new ethers.Contract(
-  Addresses.StoreFront,
-  Abis.StoreFront,
-  provider
-);
-const marketplaceContract = new ethers.Contract(
-  Addresses.Marketplace,
-  Abis.Marketplace,
-  provider
-);
-const marketplaceContract_m = new Contract(
-  Addresses.Marketplace,
-  Abis.Marketplace
-);
-const multicallProvider = new Provider(provider, supportChainId);
+const RPCS = {
+    // 1: "http://13.59.118.124/eth",
+    250: 'https://rpc.ftm.tools/'
+    // 4002: 'https://ftm-test.babylonswap.finance'
+    // 4: 'http://85.206.160.196'
+    // 1337: "http://localhost:7545",
+    // 31337: "http://localhost:8545/",
+};
+const providers = {
+    // 1: new ethers.providers.JsonRpcProvider(RPCS[1]),
+    // 4002: new ethers.providers.JsonRpcProvider(RPCS[4002])
+    // 4: new ethers.providers.JsonRpcBatchProvider(RPCS[4])
+    250: new ethers.providers.JsonRpcBatchProvider(RPCS[250])
+    // 1337: new ethers.providers.JsonRpcProvider(RPCS[1337]),
+    // 31337: new ethers.providers.JsonRpcProvider(RPCS[31337]),
+};
+
+const provider = providers[supportChainId];
+
+const testToken = new ethers.Contract(Addresses.TestToken, Abis.TestToken, provider);
+
+const marketplaceContract = new ethers.Contract(Addresses.Marketplace, Abis.Marketplace, provider);
+
+const storeFontContract = new ethers.Contract(Addresses.StoreFront, Abis.StoreFront, provider);
+
 const getNFTContract = (address) => {
-  return new ethers.Contract(address, Abis.NFT, provider);
+    return new ethers.Contract(address, Abis.NFT, provider);
 };
-const getNFTContract_m = (address) => {
-  return new Contract(address, Abis.NFT);
-};
-const contractDeploy = async (props) => {
-  const { privateKey, name } = props;
-  let wallet = new ethers.Wallet(privateKey, provider);
-
-  let factory = new ethers.ContractFactory(Abis.NFT, Bytecode.NFT, wallet);
-  let contract = await factory.deploy(name + "'s  NFT", name + 'NFT');
-  await contract.deployed();
-
-  return contract;
-};
-const contractGas = async (props) => {
-  const { privateKey, name } = props;
-  let wallet = new ethers.Wallet(privateKey, provider);
-
-  let factory = new ethers.ContractFactory(Abis.NFT, Bytecode.NFT, wallet);
-  const deploymentData = factory.interface.encodeDeploy([
-    name + "'s  NFT",
-    name + 'NFT',
-  ]);
-
-  let estimatedGas = await provider.estimateGas({
-    data: deploymentData,
-  });
-
-  return estimatedGas;
-};
-const multicallHelper = async (calls) => {
-  console.log("multicallHelper");
-  let results = [];
-  for (let i = 0; i < calls.length; i += 100) {
-    const sCalls = calls.slice(i, i + 100);
-    const res = await multicallProvider.all(sCalls);
-    results = [...results, ...res];
-  }
-  return results;
+const getTokenContract = (address) => {
+    return new ethers.Contract(address, Abis.TestToken, provider);
 };
 
-module.exports = {
-  provider,
-  lazyNFTContract,
-  multicallProvider,
-  marketplaceContract,
-  marketplaceContract_m,
-  getNFTContract,
-  getNFTContract_m,
-  contractDeploy,
-  contractGas,
-  multicallProvider,
-  multicallHelper,
+export {
+    supportChainId,
+    provider,
+    marketplaceContract,
+    storeFontContract,
+    testToken,
+    getNFTContract,
+    getTokenContract
 };
